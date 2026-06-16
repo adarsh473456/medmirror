@@ -1,0 +1,124 @@
+{% extends "medmirror/base.html" %}
+{% block title %}MedMirror — AI Clinical Decision Simulation{% endblock %}
+{% block meta_description %}MedMirror creates a digital twin of your patient and simulates 4 treatment outcomes simultaneously.{% endblock %}
+
+{% block extra_head %}
+<style>
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; text-align: center; }
+
+    .hero { display: flex; flex-direction: column; align-items: center; max-width: 700px; width: 100%; }
+
+    .pulse-circle {
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 52px;
+        font-weight: 800;
+        color: white;
+        margin-bottom: 2.5rem;
+        position: relative;
+        box-shadow: 0 0 0 0 rgba(55, 138, 221, 0.7);
+        animation: pulse 2s infinite;
+    }
+
+    .main-title {
+        font-size: clamp(3rem, 8vw, 5rem);
+        font-weight: 800;
+        margin-bottom: 0.4rem;
+        background: linear-gradient(135deg, #ffffff 0%, #b0c4de 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+        font-size: 1.15rem;
+        color: var(--text-muted);
+        font-weight: 300;
+        letter-spacing: 1px;
+        margin-bottom: 1.5rem;
+    }
+
+    .divider {
+        width: 60px;
+        height: 4px;
+        background: var(--accent-blue);
+        border-radius: 2px;
+        margin: 0 auto 1.5rem;
+    }
+
+    .description {
+        font-size: 0.95rem;
+        color: var(--text-dim);
+        max-width: 560px;
+        line-height: 1.7;
+        margin-bottom: 2.5rem;
+    }
+
+    .cta-btn {
+        display: inline-block;
+        background: rgba(55, 138, 221, 0.1);
+        color: white;
+        border: 1px solid var(--accent-blue);
+        border-radius: 10px;
+        padding: 0.9rem 2.5rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 14px rgba(55, 138, 221, 0.2);
+        letter-spacing: 0.5px;
+        margin-bottom: 3.5rem;
+    }
+    .cta-btn:hover {
+        background: rgba(55, 138, 221, 0.22);
+        box-shadow: 0 0 28px rgba(55, 138, 221, 0.6);
+        transform: translateY(-2px);
+        border-color: #5ab0ff;
+    }
+
+    .stats-container {
+        display: flex;
+        gap: 1.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .stats-container .stat-card {
+        flex: 1;
+        min-width: 160px;
+        max-width: 220px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="pulse-circle">M</div>
+
+    <div class="main-title">MedMirror</div>
+    <div class="subtitle">AI-Powered Clinical Decision Simulation</div>
+    <div class="divider"></div>
+    <div class="description">
+        MedMirror creates a digital mirror world of your patient. Four AI agents simultaneously test different treatment paths and simulate outcomes — so you know the best decision before making it in the real world.
+    </div>
+
+    <a href="{% url 'medmirror:patient_input' %}" class="cta-btn" id="begin-assessment-btn">Begin Patient Assessment →</a>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-card-value">🤖 4 Parallel Agents</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-value">⏱️ 30-Day Simulation</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-value">📄 AI-Powered Report</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

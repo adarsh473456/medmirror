@@ -1,0 +1,227 @@
+{% extends "medmirror/base.html" %}
+{% block title %}MedMirror — Simulation Running{% endblock %}
+{% block step1 %}done{% endblock %}
+{% block step2 %}done{% endblock %}
+{% block step3 %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+    .timer-display {
+        text-align: right;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+    .agents-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 2rem; }
+    @media (max-width: 700px) { .agents-grid { grid-template-columns: 1fr; } }
+    .agent-card {
+        background: rgba(13, 21, 38, 0.75);
+        border: 1px solid rgba(55, 138, 221, 0.25);
+        border-radius: 14px;
+        padding: 1.3rem;
+        transition: border-color 0.3s;
+    }
+    .agent-card.complete { border-color: #28a745; box-shadow: 0 0 14px rgba(40,167,69,0.2); }
+    .agent-card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 2px; }
+    .agent-treatment { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.7rem; }
+    .status-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 0.7rem;
+        letter-spacing: 0.5px;
+    }
+    .status-queued { background: rgba(160,174,192,0.15); border: 1px solid #a0aec0; color: #a0aec0; }
+    .status-running { background: rgba(55,138,221,0.15); border: 1px solid var(--accent-blue); color: #73bcf8; animation: statusPulse 1.5s infinite; }
+    .status-complete { background: rgba(40,167,69,0.15); border: 1px solid #28a745; color: #8ce99a; }
+    @keyframes statusPulse {
+        0% { opacity: 0.6; } 50% { opacity: 1; box-shadow: 0 0 8px rgba(55,138,221,0.4); } 100% { opacity: 0.6; }
+    }
+    .outcome-box {
+        background: rgba(255,255,255,0.04);
+        padding: 8px 10px;
+        border-radius: 6px;
+        margin-top: 6px;
+        font-size: 0.8rem;
+        color: #cbd5e1;
+        border-left: 3px solid rgba(255,255,255,0.15);
+        line-height: 1.4;
+    }
+    .outcome-box strong { color: white; display: block; font-size: 0.72rem; text-transform: uppercase; margin-bottom: 2px; color: #73bcf8; }
+    .complete-banner {
+        background: rgba(40,167,69,0.08);
+        border: 2px solid #28a745;
+        border-radius: 14px;
+        padding: 1.5rem;
+        text-align: center;
+        margin: 2rem 0;
+        box-shadow: 0 0 20px rgba(40,167,69,0.25);
+    }
+    .complete-banner h2 { color: #8ce99a; margin: 0 0 1rem; }
+    #graph-container { margin-bottom: 2rem; }
+    .graph-svg-container {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+        <div>
+            <div class="page-title">Simulation Running</div>
+            <div class="page-subtitle">Patient: <strong>{{ patient_data.name }}</strong> | Key Symptoms: {{ symptoms_str }}</div>
+        </div>
+        <div class="timer-display" id="timer-display">⏱️ 0s</div>
+    </div>
+
+    <!-- Agent Cards -->
+    <div class="agents-grid" id="agents-grid">
+        {% for agent in agents %}
+        <div class="agent-card" id="card-{{ agent.id }}">
+            <div class="agent-card-title" style="color: {{ agent.color }};">{{ agent.name }}</div>
+            <div class="agent-treatment">Treatment: {{ agent.treatment }}</div>
+            <span class="status-badge status-queued" id="badge-{{ agent.id }}">Queued</span>
+            <div class="progress-bar-track" style="margin-bottom: 0.6rem;">
+                <div class="progress-bar-fill" id="progress-{{ agent.id }}" style="width: 0%;"></div>
+            </div>
+            <div class="outcome-box"><strong>24 Hours</strong><span id="o24-{{ agent.id }}">---</span></div>
+            <div class="outcome-box"><strong>7 Days</strong><span id="o7-{{ agent.id }}">---</span></div>
+            <div class="outcome-box"><strong>30 Days</strong><span id="o30-{{ agent.id }}">---</span></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Routing Graph -->
+    <div id="graph-container">
+        <div class="card" style="text-align:center; padding: 1.5rem;">
+            <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 1.2rem;">Agent Routing Graph</div>
+            <svg class="graph-svg-container" viewBox="0 0 440 300" xmlns="http://www.w3.org/2000/svg">
+                <!-- Edges -->
+                <line id="edge-A" x1="220" y1="150" x2="75" y2="65" stroke="rgba(55,138,221,0.3)" stroke-width="2" stroke-dasharray="5,5"/>
+                <line id="edge-B" x1="220" y1="150" x2="365" y2="65" stroke="rgba(55,138,221,0.3)" stroke-width="2" stroke-dasharray="5,5"/>
+                <line id="edge-C" x1="220" y1="150" x2="75" y2="235" stroke="rgba(55,138,221,0.3)" stroke-width="2" stroke-dasharray="5,5"/>
+                <line id="edge-D" x1="220" y1="150" x2="365" y2="235" stroke="rgba(55,138,221,0.3)" stroke-width="2" stroke-dasharray="5,5"/>
+                <!-- Patient Twin Node -->
+                <circle cx="220" cy="150" r="30" fill="#1e3c72" stroke="#378ADD" stroke-width="2"/>
+                <text x="220" y="154" text-anchor="middle" fill="white" font-size="11" font-family="Inter" font-weight="700">Patient</text>
+                <text x="220" y="167" text-anchor="middle" fill="#a0aec0" font-size="9" font-family="Inter">Twin</text>
+                <!-- Agent Nodes -->
+                <circle id="node-A" cx="75" cy="65" r="24" fill="#1e2a40" stroke="#378ADD" stroke-width="2"/>
+                <text x="75" y="69" text-anchor="middle" fill="white" font-size="11" font-family="Inter" font-weight="700">A</text>
+                <text x="75" y="92" text-anchor="middle" fill="#a0aec0" font-size="8" font-family="Inter">Agent A</text>
+
+                <circle id="node-B" cx="365" cy="65" r="24" fill="#1e2a40" stroke="#7F77DD" stroke-width="2"/>
+                <text x="365" y="69" text-anchor="middle" fill="white" font-size="11" font-family="Inter" font-weight="700">B</text>
+                <text x="365" y="92" text-anchor="middle" fill="#a0aec0" font-size="8" font-family="Inter">Agent B</text>
+
+                <circle id="node-C" cx="75" cy="235" r="24" fill="#1e2a40" stroke="#D85A30" stroke-width="2"/>
+                <text x="75" y="239" text-anchor="middle" fill="white" font-size="11" font-family="Inter" font-weight="700">C</text>
+                <text x="75" y="262" text-anchor="middle" fill="#a0aec0" font-size="8" font-family="Inter">Agent C</text>
+
+                <circle id="node-D" cx="365" cy="235" r="24" fill="#1e2a40" stroke="#1D9E75" stroke-width="2"/>
+                <text x="365" y="239" text-anchor="middle" fill="white" font-size="11" font-family="Inter" font-weight="700">D</text>
+                <text x="365" y="262" text-anchor="middle" fill="#a0aec0" font-size="8" font-family="Inter">Agent D</text>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Completion Banner (hidden until done) -->
+    <div id="complete-banner" style="display:none;" class="complete-banner">
+        <h2>✅ Simulation Complete — All agents have reported.</h2>
+        <a href="{% url 'medmirror:report' %}" class="btn btn-primary" style="max-width:340px; margin: 0 auto;">View Full Report →</a>
+    </div>
+</div>
+
+<script>
+const agentIds = ['A', 'B', 'C', 'D'];
+let startTime = Date.now();
+let pollInterval = null;
+
+// Timer
+function updateTimer(elapsed) {
+    document.getElementById('timer-display').textContent = '⏱️ ' + elapsed + 's';
+}
+
+// Update the SVG edge/node colors
+function updateGraph(status) {
+    const nodeMap = { A: 'node-A', B: 'node-B', C: 'node-C', D: 'node-D' };
+    const edgeMap = { A: 'edge-A', B: 'edge-B', C: 'edge-C', D: 'edge-D' };
+    const agentColors = { A: '#378ADD', B: '#7F77DD', C: '#D85A30', D: '#1D9E75' };
+
+    agentIds.forEach(id => {
+        const node = document.getElementById(nodeMap[id]);
+        const edge = document.getElementById(edgeMap[id]);
+        if (status[id] === 'Complete') {
+            node.setAttribute('fill', '#1a3a24');
+            node.setAttribute('stroke', '#28a745');
+            edge.setAttribute('stroke', '#28a745');
+            edge.setAttribute('stroke-width', '3');
+            edge.removeAttribute('stroke-dasharray');
+        } else if (status[id] === 'Running') {
+            node.setAttribute('stroke', agentColors[id]);
+            edge.setAttribute('stroke', agentColors[id]);
+            edge.setAttribute('stroke-opacity', '0.7');
+        }
+    });
+}
+
+function pollStatus() {
+    fetch('{% url "medmirror:simulation_status_api" %}')
+    .then(r => r.json())
+    .then(data => {
+        updateTimer(data.elapsed);
+
+        agentIds.forEach(id => {
+            const badge = document.getElementById('badge-' + id);
+            const card = document.getElementById('card-' + id);
+            const progress = document.getElementById('progress-' + id);
+
+            // Update status badge
+            if (data.status[id] === 'Running') {
+                badge.className = 'status-badge status-running';
+                badge.textContent = 'Running...';
+            } else if (data.status[id] === 'Complete') {
+                badge.className = 'status-badge status-complete';
+                badge.textContent = 'Complete';
+                card.classList.add('complete');
+            }
+
+            // Update progress bar
+            const p = Math.round(data.progress[id] || 0);
+            progress.style.width = p + '%';
+
+            // Update outcome text
+            const res = data.results[id];
+            if (res) {
+                document.getElementById('o24-' + id).textContent = res.outcome_24hr || '---';
+                document.getElementById('o7-' + id).textContent = res.outcome_7day || '---';
+                document.getElementById('o30-' + id).textContent = res.outcome_30day || '---';
+            }
+        });
+
+        updateGraph(data.status);
+
+        if (data.is_finished) {
+            clearInterval(pollInterval);
+            document.getElementById('timer-display').style.color = '#8ce99a';
+            document.getElementById('timer-display').textContent = '⏱️ ' + data.elapsed + 's (Done)';
+            document.getElementById('complete-banner').style.display = 'block';
+            document.getElementById('complete-banner').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    })
+    .catch(err => console.error('Poll error:', err));
+}
+
+// Start polling immediately and then every 1.2 seconds
+pollStatus();
+pollInterval = setInterval(pollStatus, 1200);
+</script>
+{% endblock %}

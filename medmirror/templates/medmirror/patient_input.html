@@ -1,0 +1,172 @@
+{% extends "medmirror/base.html" %}
+{% block title %}MedMirror — Patient Assessment{% endblock %}
+{% block step1 %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+.completeness-bar { margin-bottom: 2rem; }
+.completeness-label { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.4rem; }
+.form-group { margin-bottom: 1.2rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-title">Patient Assessment</div>
+    <div class="page-subtitle">Step 1 of 4 — Enter patient clinical data for the digital twin</div>
+
+    <!-- Completeness bar (JS-driven) -->
+    <div class="completeness-bar">
+        <div class="completeness-label" id="completeness-label">Data Completeness: 0%</div>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="completeness-fill" style="width: 0%"></div>
+        </div>
+    </div>
+
+    {% if errors %}
+    {% for err in errors %}
+    <div class="alert-error">❌ {{ err }}</div>
+    {% endfor %}
+    {% endif %}
+
+    <form method="POST" action="{% url 'medmirror:patient_input' %}" id="patient-form">
+        {% csrf_token %}
+
+        <!-- Patient Profile -->
+        <div class="card">
+            <h3>👤 1. Patient Profile</h3>
+            <div class="grid-2" style="align-items:start;">
+                <div>
+                    <div class="form-group">
+                        <label for="name">Patient Name</label>
+                        <input type="text" id="name" name="name" placeholder="e.g., Jane Doe" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label>Age: <span id="age-display" style="color: var(--accent-blue); font-weight:700;">50</span></label>
+                        <input type="range" id="age" name="age" min="1" max="100" value="50">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Gender</label>
+                    <div class="radio-group">
+                        <label class="radio-option"><input type="radio" name="gender" value="Male" checked> Male</label>
+                        <label class="radio-option"><input type="radio" name="gender" value="Female"> Female</label>
+                        <label class="radio-option"><input type="radio" name="gender" value="Other"> Other</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Symptoms & Vitals -->
+        <div class="card">
+            <h3>🩺 2. Symptoms and Vitals</h3>
+            <div class="grid-2" style="align-items:start;">
+                <div>
+                    <div class="form-group">
+                        <label>Primary Symptoms</label>
+                        <div class="checkbox-group" id="symptoms-group">
+                            {% for sym in symptom_options %}
+                            <label class="checkbox-option">
+                                <input type="checkbox" name="symptoms" value="{{ sym }}"> {{ sym }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:1rem;">
+                        <label>Diabetes</label>
+                        <div class="radio-group">
+                            <label class="radio-option"><input type="radio" name="diabetes" value="No" checked> No</label>
+                            <label class="radio-option"><input type="radio" name="diabetes" value="Yes"> Yes</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>Systolic BP: <span id="sys-display" style="color: var(--accent-blue); font-weight:700;">120</span> mmHg</label>
+                        <input type="range" id="sys_bp" name="sys_bp" min="70" max="200" value="120">
+                    </div>
+                    <div class="form-group">
+                        <label>Diastolic BP: <span id="dia-display" style="color: var(--accent-blue); font-weight:700;">80</span> mmHg</label>
+                        <input type="range" id="dia_bp" name="dia_bp" min="40" max="130" value="80">
+                    </div>
+                    <!-- Live AI Note -->
+                    <div id="bp-note"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medical History -->
+        <div class="card">
+            <h3>📋 3. Medical History</h3>
+            <div class="form-group">
+                <label>Existing Conditions</label>
+                <div class="checkbox-group">
+                    {% for cond in condition_options %}
+                    <label class="checkbox-option">
+                        <input type="checkbox" name="conditions" value="{{ cond }}"> {{ cond }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="medications">Current Medications</label>
+                <input type="text" id="medications" name="medications" placeholder="e.g. Aspirin, Metformin">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="submit-btn">🚀 Initiate Digital Twin Simulation</button>
+    </form>
+</div>
+
+<script>
+    // Age slider display
+    const ageSlider = document.getElementById('age');
+    const ageDisplay = document.getElementById('age-display');
+    ageSlider.addEventListener('input', () => { ageDisplay.textContent = ageSlider.value; updateCompleteness(); });
+
+    // BP sliders + live AI note
+    const sysSlider = document.getElementById('sys_bp');
+    const diaSlider = document.getElementById('dia_bp');
+    const sysDisplay = document.getElementById('sys-display');
+    const diaDisplay = document.getElementById('dia-display');
+    const bpNote = document.getElementById('bp-note');
+
+    function updateBPNote() {
+        const sys = parseInt(sysSlider.value);
+        const dia = parseInt(diaSlider.value);
+        if (sys > 140 || dia > 90) {
+            bpNote.innerHTML = '<div class="ai-insight ai-insight-warning">⚠️ <b>AI Note:</b> Stage 2 Hypertension detected. High risk profile. Agents A & B (Beta Blockers / ACE Inhibitors) will be prioritized in simulation.</div>';
+        } else if (sys > 120 || dia > 80) {
+            bpNote.innerHTML = '<div class="ai-insight">🟡 <b>AI Note:</b> Elevated BP detected. Monitoring recommended.</div>';
+        } else {
+            bpNote.innerHTML = '<div class="ai-insight">🟢 <b>AI Note:</b> Blood pressure is within optimal range.</div>';
+        }
+    }
+
+    sysSlider.addEventListener('input', () => { sysDisplay.textContent = sysSlider.value; updateBPNote(); });
+    diaSlider.addEventListener('input', () => { diaDisplay.textContent = diaSlider.value; updateBPNote(); });
+    updateBPNote(); // Initial render
+
+    // Completeness bar
+    function updateCompleteness() {
+        let score = 0;
+        const name = document.getElementById('name').value.trim();
+        const symptoms = document.querySelectorAll('input[name="symptoms"]:checked');
+        const conditions = document.querySelectorAll('input[name="conditions"]:checked');
+        const meds = document.getElementById('medications').value.trim();
+
+        if (name) score += 25;
+        if (symptoms.length > 0) score += 25;
+        if (conditions.length > 0) score += 25;
+        if (meds) score += 25;
+
+        document.getElementById('completeness-fill').style.width = score + '%';
+        document.getElementById('completeness-label').textContent = 'Data Completeness: ' + score + '%';
+    }
+
+    document.getElementById('name').addEventListener('input', updateCompleteness);
+    document.getElementById('medications').addEventListener('input', updateCompleteness);
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', updateCompleteness));
+    updateCompleteness(); // Initial
+</script>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "medmirror/base.html" %}
+{% block title %}MedMirror — Mirror World{% endblock %}
+{% block step1 %}done{% endblock %}
+{% block step2 %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+    .anim-card {
+        background: rgba(13, 21, 38, 0.9);
+        border: 1px solid var(--accent-blue);
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin-bottom: 10px;
+        color: white;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        animation: fadeUp 0.3s ease-out;
+    }
+    .spinner {
+        width: 20px; height: 20px;
+        border: 3px solid rgba(55,138,221,0.3);
+        border-radius: 50%;
+        border-top-color: var(--accent-blue);
+        animation: spin 0.9s linear infinite;
+        flex-shrink: 0;
+    }
+    .twin-table { width: 100%; border-collapse: collapse; }
+    .twin-table td { padding: 0.55rem 0; font-size: 0.9rem; }
+    .twin-table td:first-child { color: var(--text-muted); width: 45%; }
+    .twin-table td:last-child { color: white; font-weight: 600; }
+    .risk-badge-danger {
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid #dc3545;
+        color: #ff8793;
+        padding: 7px 14px;
+        border-radius: 8px;
+        display: inline-block;
+        margin: 4px 4px 4px 0;
+        font-weight: 600;
+        font-size: 0.85rem;
+        animation: fadeIn 0.5s ease-out;
+    }
+    .risk-badge-safe {
+        background: rgba(40, 167, 69, 0.1);
+        border: 1px solid #28a745;
+        color: #8ce99a;
+        padding: 7px 14px;
+        border-radius: 8px;
+        display: inline-block;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    #main-content { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="page-title">Mirror World</div>
+    <div class="page-subtitle">Building your patient's digital twin...</div>
+
+    <!-- Loading animation (shown first, then hidden) -->
+    <div id="loading-sequence">
+        <div class="card" id="anim-container"></div>
+    </div>
+
+    <!-- Main content (shown after animation) -->
+    <div id="main-content">
+        <div class="grid-2">
+            <!-- Digital Twin Card -->
+            <div class="card">
+                <h3>🧬 Digital Twin — Patient Model</h3>
+                <table class="twin-table">
+                    <tr><td>Name</td><td>{{ patient_data.name }}</td></tr>
+                    <tr><td>Age</td><td>{{ patient_data.age }}</td></tr>
+                    <tr><td>Gender</td><td>{{ patient_data.gender }}</td></tr>
+                    <tr><td>Symptoms</td><td>{{ symptoms_str|default:"None" }}</td></tr>
+                    <tr><td>Blood Pressure</td><td>{{ bp_str }}</td></tr>
+                    <tr><td>Diabetes</td><td>{{ patient_data.diabetes }}</td></tr>
+                    <tr><td>Conditions</td><td>{{ conditions_str }}</td></tr>
+                    <tr><td>Medications</td><td>{{ meds_str }}</td></tr>
+                </table>
+            </div>
+
+            <!-- Risk Profile -->
+            <div class="card">
+                <h3>⚠️ Risk Profile Analysis</h3>
+                {% if risks %}
+                    {% for risk in risks %}
+                    <span class="risk-badge-danger">🚨 {{ risk }}</span><br>
+                    {% endfor %}
+                {% else %}
+                    <span class="risk-badge-safe">🟢 No critical risk factors detected</span>
+                {% endif %}
+
+                <div style="margin-top: 2rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.8rem;">Simulation Agents Ready</div>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <div style="display: flex; align-items: center; gap: 0.8rem; font-size: 0.85rem;">
+                            <span style="width: 10px; height: 10px; background: #378ADD; border-radius: 50%; display: inline-block;"></span>
+                            <span>Agent A — Metoprolol Beta blocker</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.8rem; font-size: 0.85rem;">
+                            <span style="width: 10px; height: 10px; background: #7F77DD; border-radius: 50%; display: inline-block;"></span>
+                            <span>Agent B — Lisinopril ACE inhibitor</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.8rem; font-size: 0.85rem;">
+                            <span style="width: 10px; height: 10px; background: #D85A30; border-radius: 50%; display: inline-block;"></span>
+                            <span>Agent C — Angioplasty Surgical</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.8rem; font-size: 0.85rem;">
+                            <span style="width: 10px; height: 10px; background: #1D9E75; border-radius: 50%; display: inline-block;"></span>
+                            <span>Agent D — Diet and Exercise Lifestyle</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="grid-3" style="margin-top: 1rem;">
+            <div class="stat-card"><div class="stat-card-value">🤖 4 Agents Ready</div></div>
+            <div class="stat-card"><div class="stat-card-value">⏱️ 30-Day Simulation</div></div>
+            <div class="stat-card"><div class="stat-card-value">🧠 AI Analysis Active</div></div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <a href="{% url 'medmirror:simulation' %}" class="btn btn-green" id="launch-btn">🚀 Launch Simulation</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const steps = [
+        "Extracting patient biomarkers...",
+        "Mapping disease progression model...",
+        "Loading drug interaction database...",
+        "Generating physiological twin...",
+        "Calibrating immune response model...",
+        "Mirror world construction complete."
+    ];
+
+    const container = document.getElementById('anim-container');
+    let html = '';
+    let i = 0;
+
+    function runStep() {
+        if (i >= steps.length) {
+            // Animation done - hide loading, show main content
+            setTimeout(() => {
+                document.getElementById('loading-sequence').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+            }, 600);
+            return;
+        }
+
+        const step = steps[i];
+        // Show step with spinner
+        const spinner = `<div class="anim-card"><div class="spinner"></div><span>${step}</span></div>`;
+        container.innerHTML = html + spinner;
+
+        setTimeout(() => {
+            // Replace spinner with checkmark
+            html += `<div class="anim-card"><span>✅</span><span>${step}</span></div>`;
+            container.innerHTML = html;
+            i++;
+            setTimeout(runStep, 350);
+        }, 800);
+    }
+
+    runStep();
+</script>
+{% endblock %}
