@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from fpdf import FPDF
 
 st.set_page_config(page_title="MedMirror - Report", layout="wide", initial_sidebar_state="collapsed")
-
+#dfr
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
