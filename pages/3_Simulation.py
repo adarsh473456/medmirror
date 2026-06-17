@@ -42,7 +42,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
 .banner-complete { background: rgba(40, 167, 69, 0.1); border: 2px solid #28a745; border-radius: 12px; padding: 20px; text-align: center; margin-top: 2rem; margin-bottom: 2rem; box-shadow: 0 0 20px rgba(40, 167, 69, 0.3); }
 .banner-complete h2 { color: #8ce99a; margin: 0; }
-
+#huhy
 /* Glowing Button */
 div.stButton > button:first-child {
     background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%) !important;
