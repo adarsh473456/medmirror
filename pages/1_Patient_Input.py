@@ -105,7 +105,7 @@ dia_bp = 80
 diabetes = "No"
 conditions = []
 meds = ""
-
+#gone dn
 with st.container(border=True):
     st.subheader("👤 1. Patient Profile")
     col1, col2, col3 = st.columns([2, 2, 1])
