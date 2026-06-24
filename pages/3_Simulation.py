@@ -36,7 +36,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 .status-complete { background: rgba(40, 167, 69, 0.2); color: #8ce99a; border: 1px solid #28a745; }
 
 @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; box-shadow: 0 0 10px rgba(55,138,221,0.5); } 100% { opacity: 0.6; } }
-
+#333
 .stat-box { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 13px; color: #cbd5e1; border-left: 3px solid rgba(255,255,255,0.2); line-height: 1.4; }
 .stat-box strong { color: white; display: block; margin-bottom: 3px; }
 
